@@ -1,0 +1,24 @@
+body {
+  background-color: #383838;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.2em;
+  margin: 120px 0 0 0;
+}
+
+
+
+#wrapper, #container {
+  display: block;
+  width: 864px;
+  height: 486px;
+  margin: 0 auto;
+
+  background-color: #636363;
+}
+
+.error {
+  font-style: italic;
+  color: red;
+}
