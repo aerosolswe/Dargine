@@ -26,7 +26,7 @@ class Texture {
 
     glContext.bindTexture(webgl.RenderingContext.TEXTURE_2D, id);
     glContext.texImage2D(webgl.RenderingContext.TEXTURE_2D, 0, webgl.RenderingContext.RGBA, webgl.RenderingContext.RGBA, webgl.RenderingContext.UNSIGNED_BYTE, img);
-    glContext.texParameteri(webgl.RenderingContext.TEXTURE_2D, webgl.RenderingContext.TEXTURE_MAG_FILTER, webgl.RenderingContext.LINEAR_MIPMAP_LINEAR);
+    glContext.texParameteri(webgl.RenderingContext.TEXTURE_2D, webgl.RenderingContext.TEXTURE_MAG_FILTER, webgl.RenderingContext.LINEAR);
     glContext.texParameteri(webgl.RenderingContext.TEXTURE_2D, webgl.RenderingContext.TEXTURE_MIN_FILTER, webgl.RenderingContext.LINEAR_MIPMAP_LINEAR);
     glContext.generateMipmap(webgl.RenderingContext.TEXTURE_2D);
 
