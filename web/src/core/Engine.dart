@@ -1,13 +1,19 @@
+library Dargine;
+
 import 'dart:html';
-import 'dart:collection';
 import 'dart:web_gl' as webgl;
 import 'dart:math' as math;
-import '../graphics/Mesh.dart';
-import '../graphics/Texture.dart';
-import '../graphics/Shader.dart';
 import 'package:vector_math/vector_math.dart';
+import 'dart:typed_data';
+
+part '../core/ModelInstance.dart';
+part '../graphics/Shader.dart';
+part '../graphics/Camera.dart';
+part '../graphics/Texture.dart';
+part '../graphics/Mesh.dart';
 
 class Engine {
+  static Shader basicShader;
 
   CanvasElement canvas;
   webgl.RenderingContext glContext;
@@ -16,82 +22,51 @@ class Engine {
   int get width => canvas.width;
   int get height => canvas.height;
 
-  Mesh mesh;
-  Texture texture;
-  Shader shader;
+  List<ModelInstance> instances;
 
-  Matrix4 pMatrix;
-  Matrix4 mvMatrix;
-  Queue<Matrix4> mvMatrixStack;
+  Camera mainCamera;
 
-  int aVertexPosition;
-  int aTextureCoord;
-  webgl.UniformLocation uPMatrix;
-  webgl.UniformLocation uMVMatrix;
-  webgl.UniformLocation samplerUniform;
-
-  double xRot = 0.0, xSpeed = 20.0,
-  yRot = 0.0, ySpeed = 10.0,
+  double xRot = 0.0,
+  xSpeed = 20.0,
+  yRot = 0.0,
+  ySpeed = 10.0,
   zPos = -5.0;
 
   int filter = 0;
   double lastTime = 0.0;
 
-  List<bool> currentlyPressedKeys;
   bool get isFullscreen => canvas == document.fullscreenElement;
 
   var requestAnimationFrame;
 
-  Engine(CanvasElement canvasElement) {
-    canvas = canvasElement;
+  Engine(CanvasElement canvas) {
+    this.canvas = canvas;
+
     canvas.width = canvas.parent.client.width;
     canvas.height = canvas.parent.client.height;
-    currentlyPressedKeys = new List<bool>(128);
+
     glContext = canvas.getContext("experimental-webgl");
 
-    mvMatrix = new Matrix4.identity();
-    pMatrix = new Matrix4.identity();
+    basicShader = new Shader(glContext, "./res/shaders/basic.vs", "./res/shaders/basic.fs");
+
+    mainCamera = new Camera(makePerspectiveMatrix(radians(90.0), width / height, 0.1, 1000.0));
+    mainCamera.transform.translate(0, 10.0, -15.0);
     bind();
 
-    String vsSource = """
-    attribute vec3 aVertexPosition;
-    attribute vec2 aTextureCoord;
+    var random = new math.Random();
+    instances = new List<ModelInstance>();
+    for(int i = 0; i < 10; i++) {
+      ModelInstance m = new ModelInstance(new Mesh(glContext), new Texture(glContext, "./res/textures/crate.gif"));
+      m.transform.translate(random.nextDouble() * 10, random.nextDouble() * 10, random.nextDouble() * 10);
 
-    uniform mat4 uMVMatrix;
-    uniform mat4 uPMatrix;
-
-    varying vec2 vTextureCoord;
-
-    void main(void) {
-      gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-      vTextureCoord = aTextureCoord;
+      instances.add(m);
     }
-    """;
 
-    // fragment shader source code. uColor is our variable that we'll
-    // use to animate color
-    String fsSource = """
-    precision mediump float;
-    varying vec2 vTextureCoord;
-    uniform sampler2D uSampler;
-    void main(void) {
-      gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-    }
-    """;
+    mainCamera.lookAt(instances[random.nextInt(10)].transform.getTranslation());
 
-    shader = new Shader(glContext, vsSource, fsSource);
-    aVertexPosition = shader.getAttributeLocation("aVertexPosition");
-    aTextureCoord =   shader.getAttributeLocation("aTextureCoord");
-    texture = new Texture(glContext, "./crate.gif");
-    mesh = new Mesh(glContext);
 
     glContext.enable(webgl.RenderingContext.CULL_FACE);
     glContext.enable(webgl.RenderingContext.DEPTH_TEST);
-  }
-
-  void setMatrixUniforms() {
-    shader.setUniformMatrix("uPMatrix", pMatrix);
-    shader.setUniformMatrix("uMVMatrix", mvMatrix);
   }
 
   double renderTime;
@@ -106,31 +81,27 @@ class Engine {
     renderTime = t.toDouble();
 
     glContext.viewport(0, 0, width, height);
-    glContext.clearColor(0.0, 0.0, 0.0, 1.0);
+    glContext.clearColor(0.1, 0.1, 0.1, 1.0);
     glContext.clearDepth(1.0);
-    glContext.clear(webgl.RenderingContext.COLOR_BUFFER_BIT | webgl.RenderingContext.DEPTH_BUFFER_BIT);
+    glContext.clear(webgl.RenderingContext.COLOR_BUFFER_BIT |
+    webgl.RenderingContext.DEPTH_BUFFER_BIT);
 
-    pMatrix = makePerspectiveMatrix(radians(90.0), width / height, 0.1, 100.0);
+    /** Add active shader == instance.shader check if using */
+    if (!basicShader.isUsing) basicShader.use();
 
-    // draw triangle
-    mvMatrix = new Matrix4.identity();
+    basicShader.setUniformInt("uSampler", 0);
+    basicShader.setUniformMatrix("uPMatrix", mainCamera.getViewProjection());
 
-    mvMatrix.translate(new Vector3(0.0, 0.0, zPos));
+    for (var instance in instances) {
+      basicShader.setUniformMatrix("uMVMatrix", instance.transform);
 
-    mvMatrix.rotate(new Vector3(1.0, 0.0, 0.0), degToRad(xRot));
-    mvMatrix.rotate(new Vector3(0.0, 1.0, 0.0), degToRad(yRot));
-    //_mvMatrix.rotate(_degToRad(_zRot), new Vector3.fromList([0, 0, 1]));
+      instance.draw();
+    }
 
-    texture.bind(0);
-    shader.setUniformInt("uSampler", 0);
-    setMatrixUniforms();
+    if (basicShader.isUsing) basicShader.stopUsing();
 
-    mesh.draw(aVertexPosition, aTextureCoord);
-
-    // rotate
     animate(time);
 
-    // keep drawing
     window.requestAnimationFrame(this.render);
   }
 
@@ -182,7 +153,6 @@ class Engine {
     lastTime = (new DateTime.now()).millisecondsSinceEpoch * 1.0;
     window.requestAnimationFrame(this.render);
   }
-
 }
 
 void main() {

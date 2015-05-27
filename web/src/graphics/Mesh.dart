@@ -1,11 +1,4 @@
-
-import 'dart:html';
-import 'dart:collection';
-import 'dart:web_gl' as webgl;
-import 'dart:typed_data';
-import 'dart:math' as math;
-import 'package:vector_math/vector_math.dart';
-
+part of Dargine;
 
 class Mesh {
 
@@ -14,6 +7,8 @@ class Mesh {
   webgl.Buffer cubeVertexTextureCoordBuffer;
   webgl.Buffer cubeVertexPositionBuffer;
   webgl.Buffer cubeVertexIndexBuffer;
+
+  int size;
 
   Mesh(webgl.RenderingContext gl) {
     glContext = gl;
@@ -107,7 +102,7 @@ class Mesh {
 
     cubeVertexIndexBuffer = glContext.createBuffer();
     glContext.bindBuffer(webgl.RenderingContext.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
-    List<int> _cubeVertexIndices = [
+    List<int> cubeVertexIndices = [
         0, 1, 2, 0, 2, 3, // Front face
         4, 5, 6, 4, 6, 7, // Back face
         8, 9, 10, 8, 10, 11, // Top face
@@ -115,12 +110,13 @@ class Mesh {
         16, 17, 18, 16, 18, 19, // Right face
         20, 21, 22, 20, 22, 23 // Left face
     ];
-    glContext.bufferData(webgl.RenderingContext.ELEMENT_ARRAY_BUFFER, new Uint16List.fromList(_cubeVertexIndices), webgl.RenderingContext.STATIC_DRAW);
+    glContext.bufferData(webgl.RenderingContext.ELEMENT_ARRAY_BUFFER, new Uint16List.fromList(cubeVertexIndices), webgl.RenderingContext.STATIC_DRAW);
+    size = cubeVertexIndices.length;
   }
 
-  void draw(int vertexPos, int textureCoord) {
-    glContext.enableVertexAttribArray(vertexPos);
-    glContext.enableVertexAttribArray(textureCoord);
+  void draw() {
+    glContext.enableVertexAttribArray(0);
+    glContext.enableVertexAttribArray(1);
 
     // verticies
     glContext.bindBuffer(webgl.RenderingContext.ARRAY_BUFFER, cubeVertexPositionBuffer);
@@ -131,9 +127,9 @@ class Mesh {
     glContext.vertexAttribPointer(1, 2, webgl.RenderingContext.FLOAT, false, 0, 0);
 
     glContext.bindBuffer(webgl.RenderingContext.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
-    glContext.drawElements(webgl.RenderingContext.TRIANGLES, 36, webgl.RenderingContext.UNSIGNED_SHORT, 0);
+    glContext.drawElements(webgl.RenderingContext.TRIANGLES, size, webgl.RenderingContext.UNSIGNED_SHORT, 0);
 
-    glContext.disableVertexAttribArray(vertexPos);
-    glContext.disableVertexAttribArray(textureCoord);
+    glContext.disableVertexAttribArray(0);
+    glContext.disableVertexAttribArray(1);
   }
 }

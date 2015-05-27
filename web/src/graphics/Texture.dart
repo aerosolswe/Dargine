@@ -1,17 +1,11 @@
-import 'dart:html';
-import 'dart:collection';
-import 'dart:web_gl' as webgl;
-import 'dart:typed_data';
-import 'dart:math' as math;
-import 'package:vector_math/vector_math.dart';
+part of Dargine;
 
 class Texture {
   webgl.RenderingContext glContext;
-
   webgl.Texture id;
 
-  Texture(webgl.RenderingContext gl, String src) {
-    glContext = gl;
+  Texture(webgl.RenderingContext glContext, String src) {
+    this.glContext = glContext;
     id = glContext.createTexture();
 
     ImageElement image = new Element.tag('img');
@@ -27,7 +21,7 @@ class Texture {
     glContext.bindTexture(webgl.RenderingContext.TEXTURE_2D, id);
     glContext.texImage2D(webgl.RenderingContext.TEXTURE_2D, 0, webgl.RenderingContext.RGBA, webgl.RenderingContext.RGBA, webgl.RenderingContext.UNSIGNED_BYTE, img);
     glContext.texParameteri(webgl.RenderingContext.TEXTURE_2D, webgl.RenderingContext.TEXTURE_MAG_FILTER, webgl.RenderingContext.LINEAR);
-    glContext.texParameteri(webgl.RenderingContext.TEXTURE_2D, webgl.RenderingContext.TEXTURE_MIN_FILTER, webgl.RenderingContext.LINEAR_MIPMAP_LINEAR);
+    glContext.texParameteri(webgl.RenderingContext.TEXTURE_2D, webgl.RenderingContext.TEXTURE_MIN_FILTER, webgl.RenderingContext.LINEAR_MIPMAP_NEAREST);
     glContext.generateMipmap(webgl.RenderingContext.TEXTURE_2D);
 
     glContext.bindTexture(webgl.RenderingContext.TEXTURE_2D, null);
